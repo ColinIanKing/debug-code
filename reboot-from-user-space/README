@@ -1,0 +1,11 @@
+Example program to reboot an Intel PC from userspace. Needs to be run
+as root, e.g. sudo ./reboot
+
+
+Change the RESET_METHOD in reboot.c to reboot via keyboard controller or by
+PCI reset.
+
+#define RESET_METHOD_KEYB       1
+#define RESET_METHOD_PCI        2
+
+#define RESET_METHOD            RESET_METHOD_PCI
