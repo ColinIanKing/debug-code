@@ -1,0 +1,14 @@
+Example program to flash the keyboard LED on and off every second.
+Run with sudo as it needs super user priviledge to access ports.
+
+This program comes in two halves:
+
+led.c 		main, gets ioperms() and calls assembler
+flash_led.S  	assembler that does the LED flashing.
+
+flash_led.S can be incorporated into the early linux resume code
+for debug purposes, namely in arch/x86/kernel/acpi/wakeup_32.S
+
+the assembler has been tested in wakeup_32.S for resume debug
+purposes.
+
