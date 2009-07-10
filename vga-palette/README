@@ -1,0 +1,3 @@
+
+Simple hack to flip vga palette - can be used to debug when a machine hangs badly and you have no
+keyboard or network debug output
