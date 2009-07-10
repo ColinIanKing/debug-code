@@ -1,0 +1,4 @@
+
+beep.S is some assembler to play tones on a PC that has an internal speaker.
+This can be useful for debugging machines when there is no screen or console
+display. The assembler can be incorporated into early kernel startup code.
