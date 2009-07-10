@@ -1,0 +1,2 @@
+Some hacky code to set VGA palette to black, white, red, green or blue. This can
+be used for early resume debug etc.
