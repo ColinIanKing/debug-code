@@ -1,0 +1,2 @@
+Example program to flash the keyboard LED on and off every second.
+Run with sudo as it needs super user priviledge to access ports.
