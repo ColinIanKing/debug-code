@@ -1,0 +1,15 @@
+Program to generate a constant bitrate of data. Ideal for testing data
+being pushed over a network/wifi connection.
+
+Syntax: ./constant_bitrate fromfilename tofilename bitrate packetsize
+   filenames may be - to indicate stdin or stdout
+
+Example:
+
+On machine #1:
+
+./constant_bitrate /dev/zero - 10000000 1024 | netcat 192.168.1.10 7772
+
+On machine #2:
+
+netcat 7772
