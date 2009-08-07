@@ -1,0 +1,15 @@
+
+Block I/O write/read benchmarking tool.
+
+Syntax:
+benchmark: [-s size] [-f filename] [-S] [-D] [-C] [-m max_size]
+	-s size of data to read/write (in MB)
+	-m max size of read/write blocks to transfer (in MB)
+	-S use O_SYNC
+	-D use O_DIRECT
+	-C do not drop caches before each test
+	-f name of file to read/write, can be a raw device
+
+Example:
+	benchmark -s 64 -f /dev/sdb -S -D 
+
