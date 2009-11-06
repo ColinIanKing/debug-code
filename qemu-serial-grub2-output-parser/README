@@ -1,0 +1,4 @@
+
+This code simply rips out the annoying VT escape sequences from the serial output
+
+qemu -bios bios-efi.bin -m 1024 karmic-efi-qcow2.img -serial stdio 2>&1 | ./parse-output
