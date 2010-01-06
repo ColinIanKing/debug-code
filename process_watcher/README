@@ -1,0 +1,6 @@
+Tool to gather CPU usage stats on processes over a selected time span
+
+process-watcher: [-s samples ] [-c] [-p]
+    -s specifies number of 1 second samples to make
+    -c print CPU usage summary
+    -p process samples data dump
