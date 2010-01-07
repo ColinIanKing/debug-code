@@ -31,13 +31,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define MAX_PID 256
+#define PROCESS_INFO_SIZE 1031
 
 static int stop = 0;
 
 static inline unsigned int pid_hash(unsigned int pid)
 {
-	return pid % MAX_PID;
+	return (pid * 3) % PROCESS_INFO_SIZE;
 }
 
 typedef struct {
@@ -123,13 +123,14 @@ int main(int argc, char **argv)
 		}
 	}
 
+
 	/* Defualt to do at least something! */
 	if (cpu_summary == 0 && process_summary == 0) {
 		cpu_summary = 1;
 	}
 
 	/* Allocate tables */
-	if ((process_info = (process_info_t*)malloc(MAX_PID * sizeof(process_info_t))) == NULL) {
+	if ((process_info = (process_info_t*)malloc(PROCESS_INFO_SIZE * sizeof(process_info_t))) == NULL) {
 		fprintf(stderr, "Out of memory allocating process data\n");
 		exit(EXIT_FAILURE);
 	}
@@ -138,13 +139,13 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	for (i=0;i<max_samples;i++) {
-		if ((samples[i] = malloc(MAX_PID * sizeof(sample_t))) == NULL) {
+		if ((samples[i] = malloc(PROCESS_INFO_SIZE * sizeof(sample_t))) == NULL) {
 			fprintf(stderr, "Out of memory allocating samples data\n");
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	for (i=0;i<MAX_PID;i++) {
+	for (i=0;i<PROCESS_INFO_SIZE;i++) {
 		process_info[i].pid = -1;
 	}
 
@@ -164,11 +165,13 @@ int main(int argc, char **argv)
 				int pid = atoi(dirent->d_name);
 				int delta_usr, delta_sys;
 				int index = pid_hash(pid);
-	
+
 				while (process_info[index].pid != pid) {
 					if (process_info[index].pid == -1)
 						break;
 					index++;
+					if (index >= PROCESS_INFO_SIZE) 
+						index = 0;
 				}
 	
 				process_info[index].pid = pid;
@@ -223,7 +226,7 @@ int main(int argc, char **argv)
 	if (stop)
 		max_samples = sample;
 
-	for (i=0;i<MAX_PID;i++) {
+	for (i=0;i<PROCESS_INFO_SIZE;i++) {
 		if (process_info[i].active > 0) {
 			active++;
 		}
@@ -234,13 +237,13 @@ int main(int argc, char **argv)
 	if (process_summary) {
 		printf("\nPer Second Sample Summary:\n\n");
 
-		for (i=0;i<MAX_PID;i++) {
+		for (i=0;i<PROCESS_INFO_SIZE;i++) {
 			if (process_info[i].active > 0) {
 				printf("%-5d      ",process_info[i].pid);
 			}
 		}
 		printf("\n");
-		for (i=0;i<MAX_PID;i++) {
+		for (i=0;i<PROCESS_INFO_SIZE;i++) {
 			if (process_info[i].active > 0) {
 				char *ptr = process_info[i].name;
 				while (*ptr) {
@@ -253,7 +256,7 @@ int main(int argc, char **argv)
 			}
 		}
 		printf("\n");
-		for (i=0;i<MAX_PID;i++) {
+		for (i=0;i<PROCESS_INFO_SIZE;i++) {
 			if (process_info[i].active > 0) {
 				printf("%3s  %3s   ","usr","sys");
 			}
@@ -261,7 +264,7 @@ int main(int argc, char **argv)
 		printf("\n");
 
 		for (sample=0;sample<max_samples;sample++) {
-			for (i=0;i<MAX_PID;i++) {
+			for (i=0;i<PROCESS_INFO_SIZE;i++) {
 				if (process_info[i].active > 0) {
 					printf("%-3d  %-3d   ",samples[sample][i].delta_usr,samples[sample][i].delta_sys);
 				}
@@ -275,7 +278,7 @@ int main(int argc, char **argv)
 		int grand_total_sys = 0;
 		int mypid = getpid();
 
-		for (i=0;i<MAX_PID;i++) {
+		for (i=0;i<PROCESS_INFO_SIZE;i++) {
 			if (process_info[i].active > 0) {
 				for (sample=0;sample<max_samples;sample++) {
 					process_info[i].total_usr += samples[sample][i].delta_usr;
@@ -285,13 +288,13 @@ int main(int argc, char **argv)
 				grand_total_sys  += process_info[i].total_sys;
 			}
 		}
-		qsort(process_info, MAX_PID, sizeof(process_info_t), process_info_compare);
+		qsort(process_info, PROCESS_INFO_SIZE, sizeof(process_info_t), process_info_compare);
 
 		printf("\nTotal CPU Usage Summary:\n\n");
 
 		printf(" PID\t%% USR\t%% USR\t%% SYS\t%% SYS\tPROCESS\n");
 		printf("\t(share)\t(CPU)\t(share)\t(CPU)\n");
-		for (i=0;i<MAX_PID;i++) {
+		for (i=0;i<PROCESS_INFO_SIZE;i++) {
 			if (process_info[i].active > 0) {
 				printf("%5d\t%6.2f\t%6.2f\t%6.2f\t%6.2f\t%s %s\n",
 					process_info[i].pid,
