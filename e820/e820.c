@@ -17,10 +17,13 @@
  * 
  */
 
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include <sched.h>
 
 #include <libx86.h>
 
@@ -38,6 +41,15 @@ int main(int argc, char **argv)
 	e820_t *e820;
 	char *str;
 	int cont = 0;
+        cpu_set_t mask, oldset;
+
+        /* First, go to the right cpu */
+
+        sched_getaffinity(0, sizeof(oldset), &oldset);
+
+        CPU_ZERO(&mask);
+        CPU_SET(0, &mask);
+        sched_setaffinity(0, sizeof(mask), &mask);
 
 	LRMI_init();
 
@@ -47,8 +59,10 @@ int main(int argc, char **argv)
 	}
 
 	printf("Base Address     Length           Type\n");
-	
+
 	do {
+		memset(&regs,0,sizeof(struct LRMI_regs));
+
 		regs.eax = 0xe820;
 		regs.ebx = cont;
 		regs.ecx = 20;
@@ -56,8 +70,8 @@ int main(int argc, char **argv)
 		   	   ('M' << 16) |
                    	   ('A' << 8) |
                    	   ('P');
-		regs.es = ((int)e820)>>4;
-		regs.edi = 0;
+		regs.es = ((unsigned long)e820)>>4;
+		regs.edi = ((unsigned long)e820)&0xf;
 		LRMI_int(0x15, &regs);
 
 		if (regs.flags & 1)
