@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <limits.h>
 #include <sys/types.h>
@@ -48,6 +49,19 @@ typedef struct {
 #define VAR_BOOTSERVICE_ACCESS	0x00000002
 #define VAR_RUNTIME_ACCESS	0x00000004
 
+static int true_filter(const struct dirent *d)
+{
+	if (strcmp(d->d_name, "del_var") == 0)
+		return 0;
+	if (strcmp(d->d_name, "new_var") == 0)
+		return 0;
+	if (strcmp(d->d_name, ".") == 0)
+		return 0;
+	if (strcmp(d->d_name, "..") == 0)
+		return 0;
+        return 1;
+}
+
 static inline void uefi_set_filename(
 	char *filename,
 	const int len,
@@ -66,8 +80,8 @@ static void guid_to_str(
 
 	if (guid_str_len > 36)
 		snprintf(guid_str, guid_str_len, 
-			"%02X%02X%02X%02X-%02X%02X-%02X%02X-"
-			"%02X%02X-%02X%02X%02X%02X%02X%02X",
+			"%02x%02x%02x%02x-%02x%02x-%02x%02x-"
+			"%02x%02x-%02x%02x%02x%02x%02x%02x",
 			guid[3], guid[2], guid[1], guid[0], guid[5], guid[4], guid[7], guid[6],
 		guid[8], guid[9], guid[10], guid[11], guid[12], guid[13], guid[14], guid[15]);
 	else
@@ -137,35 +151,53 @@ static int uefi_get_variable(
 
 static void uefi_var_del(const char *varname)
 {
-	uefi_var var;
 	int fd;
+	struct dirent **names = NULL;
+	int n;
+	int i;
+	size_t len = strlen(varname);
+	bool deleted = false;
 
-	if (uefi_get_variable(varname, &var) == ERROR) {
-		fprintf(stderr, "No such variable %s\n", varname);
-		exit(EXIT_FAILURE);
+	/*
+	 * We are given the short name, however the /sys interface
+	 * supplies variables with their GUID, so we need to match
+	 * against this.
+	 */
+	n = scandir("/sys/firmware/efi/vars", &names, true_filter, alphasort);
+	if (n == 0)
+		return;
+
+	for (i = 0; i < n; i++) {
+		uefi_var var;
+		char tmpname[513+38];	/* enough for EUFI varname + GUID */
+		char guid_str[37];
+
+		/* Possible candidate? */
+		if (strncmp(names[i]->d_name, varname, len) == 0) {
+			if (uefi_get_variable(names[i]->d_name, &var) != ERROR) {
+				uefi_get_varname(tmpname, sizeof(tmpname), &var);
+				guid_to_str(var.guid, guid_str, sizeof(guid_str));
+
+				snprintf(tmpname, sizeof(tmpname), "%s-%s", varname, guid_str);
+
+				/* Does it exactly match, then delete it */
+				if (!strcmp(tmpname, names[i]->d_name)) {
+					if ((fd = open("/sys/firmware/efi/vars/del_var", O_WRONLY)) < 0) {
+						fprintf(stderr, "Cannot open del_var\n");
+						exit(EXIT_FAILURE);
+					}
+					if (write(fd, &var, sizeof(var)) > 0)
+						deleted = true;
+					close(fd);
+				}
+			}
+		}
+		free(names[i]);
 	}
+	free(names);
 
-	if ((fd = open("/sys/firmware/efi/vars/del_var", O_WRONLY)) < 0) {
-		fprintf(stderr, "Cannot open del_var\n");
-		exit(EXIT_FAILURE);
-	}
-	
-	write(fd, &var, sizeof(var));
-	
-	close(fd);
-}
-
-static int true_filter(const struct dirent *d)
-{
-	if (strcmp(d->d_name, "del_var") == 0)
-		return 0;
-	if (strcmp(d->d_name, "new_var") == 0)
-		return 0;
-	if (strcmp(d->d_name, ".") == 0)
-		return 0;
-	if (strcmp(d->d_name, "..") == 0)
-		return 0;
-        return 1;
+	if (!deleted)
+		fprintf(stderr, "No such variable %s.\n", varname);
 }
 
 static void uefi_var_ls(void)
@@ -211,6 +243,11 @@ int main(int argc, char **argv)
 	uint32_t	opts = 0;
 	int		opt;
 	int		i;
+
+	if (geteuid() != 0) {
+		fprintf(stderr, "Need to run with root privilege.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	while ((opt = getopt(argc, argv, "lr")) != -1) {
 		switch(opt) {
