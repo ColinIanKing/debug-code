@@ -194,7 +194,9 @@ static void uefi_var_ls(void)
 				(unsigned int)var.datalen,
 				guid_str, varname);
 		}
+		free(names[i]);
 	}
+	free(names);
 }
 
 static void syntax(const char *prog)
