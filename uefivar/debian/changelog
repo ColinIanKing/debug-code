@@ -1,3 +1,9 @@
+uefivar (0.01.01) quantal; urgency=low
+
+  * Correctly delete variable names.
+
+ -- Colin King <colin.king@canonical.com>  Tue, 3 Sep 2012 16:33:00 +0100
+
 uefivar (0.01.00) quantal; urgency=low
 
   * Initial version 
