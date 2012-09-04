@@ -1,0 +1,46 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH UEFIVAR 8 "September 2, 2012"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+uefivar \- a tool to list and delete UEFI variables.
+.br
+
+.SH SYNOPSIS
+.B uefivar
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+uefivar is a program that lists and also deletes UEFI variables from the UEFI
+non-volatile memory. The tool needs to be run with root privilege to access the
+kernel /sys/firmware/efi/var UEFI variable interface.
+
+.SH OPTIONS
+uefivar options are as follow:
+.TP
+.B \-l
+list UEFI variables; this dislays the non-volatile, bootservice access and runtime access attributes, the size of the variable data, the UUID and the variable name. 
+.TP
+.B \-d
+delete the named variables. Use with caution!
+.SH SEE ALSO
+.BR fwts (1) 
+.SH AUTHOR
+uefivar was written by Colin King <colin.king@canonical.com>
+.PP
+This manual page was written by Colin King <colin.king@canonical.com>,
+for the Ubuntu project (but may be used by others).

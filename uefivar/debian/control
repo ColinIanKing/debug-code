@@ -1,0 +1,15 @@
+Source: uefivar
+Section: admin
+Priority: optional
+Maintainer: Colin King <colin.king@ubuntu.com>
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 7)
+
+Package: uefivar
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: uefivar
+ The uefivar tool allows one to list and delete UEFI variables
+ on UEFI systems.  The tool requires root privilege to run to
+ access and modify the UEFI variables.
+

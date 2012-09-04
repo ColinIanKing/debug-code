@@ -1,0 +1,5 @@
+uefivar (0.01.00) quantal; urgency=low
+
+  * Initial version 
+
+ -- Colin King <colin.king@canonical.com>  Tue, 3 Sep 2012 11:44:00 +0100

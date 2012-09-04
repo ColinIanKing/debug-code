@@ -1,0 +1,11 @@
+Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=135
+Name: uefivar
+Maintainer: Colin King <colin.king@ubuntu.com>
+Source: git://kernel.ubuntu.com/cking/uefivar.git
+
+Files: *
+Copyright: 2012, Canonical Ltd
+
+License: GPL-2
+On Debian systems, the complete text of the GNU General Public
+License can be found in `/usr/share/common-licenses/GPL-2'.
