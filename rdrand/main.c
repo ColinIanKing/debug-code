@@ -2,11 +2,18 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 
 #include "rdrand.h"
 
 #define ITERATIONS	100000000
+
+#define cpuid(in, eax, ebx, ecx, edx)   \
+  asm("cpuid":  "=a" (eax),             \
+                "=b" (ebx),             \
+                "=c" (ecx),             \
+                "=d" (edx) : "a" (in))
 
 int main(int argc, char **argv)
 {	
@@ -16,7 +23,21 @@ int main(int argc, char **argv)
 	unsigned long long usec2;
 	struct timeval tv1, tv2;
 	double nsec;
+	uint32_t eax, ebx, ecx, edx = 0;
 
+	cpuid(0, eax, ebx, ecx, edx);
+	if (!((memcmp(&ebx, "Genu", 4) == 0) &&
+	      (memcmp(&edx, "ineI", 4) == 0) &&
+	      (memcmp(&ecx, "ntel", 4) == 0))) {
+		fprintf(stderr, "Not a recognised Intel CPU.\n");
+		exit(EXIT_FAILURE);
+	}
+	cpuid(1, eax, ebx, ecx, edx);
+	if (!(ecx & 0x40000000)) {
+		fprintf(stderr, "CPU does not support rdrand.\n");
+		exit(EXIT_FAILURE);
+	}
+	
 	gettimeofday(&tv1, NULL);
 
 	for (i = 0; i < ITERATIONS; i++)
