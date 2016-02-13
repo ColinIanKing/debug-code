@@ -35,13 +35,13 @@
 
 static int stop = 0;
 
-static inline unsigned int pid_hash(unsigned int pid)
+static inline unsigned int pid_hash(const pid_t pid)
 {
-	return (pid * 3) % PROCESS_INFO_SIZE;
+	return ((unsigned int)pid * 3) % PROCESS_INFO_SIZE;
 }
 
 typedef struct {
-	unsigned int pid;
+	pid_t pid;
 	unsigned int usr;
 	unsigned int sys;
 	unsigned int previous_usr;
@@ -100,9 +100,7 @@ int main(int argc, char **argv)
 	int opt;
 	int max_samples = MAX_SAMPLES;
 	int active = 0;
-	DIR *dir;
 
-	struct dirent *dirent;
 	process_info_t *process_info;
 	sample_t **samples;
 
@@ -155,6 +153,9 @@ int main(int argc, char **argv)
 	for (sample=-1;(!stop) && (sample<max_samples);sample++) {
 		int total_usr = 0;
 		int total_sys = 0;
+		DIR *dir;
+		struct dirent *dirent;
+
 		dir = opendir("/proc");
 
 		while ((dirent = readdir(dir)) != NULL) {
@@ -162,8 +163,7 @@ int main(int argc, char **argv)
 			if (isdigit(dirent->d_name[0])) {
 				char filename[256];
 				int fd;
-				int pid = atoi(dirent->d_name);
-				int delta_usr, delta_sys;
+				pid_t pid = atoi(dirent->d_name);
 				int index = pid_hash(pid);
 
 				while (process_info[index].pid != pid) {
@@ -182,11 +182,12 @@ int main(int argc, char **argv)
 					char buffer[4096];
 
 					if (read(fd, buffer, sizeof(buffer)) > 0) {
-						int usr;
-						int sys;
+						int usr, sys;
 						char name[256];
 
 						if (sscanf(buffer,"%*d %s %*s %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %d %d",name,&usr,&sys) == 3) {
+							int delta_usr, delta_sys;
+
 							strncpy(process_info[index].name,name,sizeof(process_info[index].name));
 							process_info[index].previous_usr = process_info[index].usr;
 							process_info[index].previous_sys = process_info[index].sys;
@@ -266,7 +267,9 @@ int main(int argc, char **argv)
 		for (sample=0;sample<max_samples;sample++) {
 			for (i=0;i<PROCESS_INFO_SIZE;i++) {
 				if (process_info[i].active > 0) {
-					printf("%-3d  %-3d   ",samples[sample][i].delta_usr,samples[sample][i].delta_sys);
+					printf("%-3u  %-3u   ",
+						samples[sample][i].delta_usr,
+						samples[sample][i].delta_sys);
 				}
 			}
 			printf("\n");
