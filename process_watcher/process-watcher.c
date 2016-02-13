@@ -186,7 +186,9 @@ int main(int argc, char **argv)
 						"%*d %*d %" SCNu32 " %" SCNu32, name, &usr, &sys) == 3) {
 						uint32_t delta_usr, delta_sys;
 
-						strncpy(process_info[index].name,name,sizeof(process_info[index].name));
+						name[strlen(name) - 1] = '\0';
+
+						strncpy(process_info[index].name, name + 1, sizeof(process_info[index].name));
 						process_info[index].previous_usr = process_info[index].usr;
 						process_info[index].previous_sys = process_info[index].sys;
 						process_info[index].usr = usr;
@@ -238,15 +240,8 @@ int main(int argc, char **argv)
 		}
 		printf("\n");
 		for (i = 0; i < PROCESS_INFO_SIZE; i++) {
-			if (process_info[i].active > 0) {
-				char *ptr = process_info[i].name;
-				while (*ptr) {
-					if (*ptr == ')')
-						*ptr = '\0';
-					ptr++;
-				}
+			if (process_info[i].active > 0)
 				printf("%-8.8s . ",&process_info[i].name[1]);
-			}
 		}
 		printf("\n");
 		for (i = 0; i < PROCESS_INFO_SIZE; i++) {
@@ -271,9 +266,9 @@ int main(int argc, char **argv)
 		uint32_t grand_total_sys = 0;
 		pid_t mypid = getpid();
 
-		for (i = 0;i < PROCESS_INFO_SIZE; i++) {
+		for (i = 0; i < PROCESS_INFO_SIZE; i++) {
 			if (process_info[i].active > 0) {
-				for (sample=0;sample<max_samples;sample++) {
+				for (sample = 0; sample < max_samples; sample++) {
 					process_info[i].total_usr += samples[sample][i].delta_usr;
 					process_info[i].total_sys += samples[sample][i].delta_usr;
 				}
@@ -295,7 +290,7 @@ int main(int argc, char **argv)
 					((float)process_info[i].total_usr/(float)(max_samples*100))*100.0,
 					((float)process_info[i].total_sys/(float)grand_total_sys)*100.0,
 					((float)process_info[i].total_sys/(float)(max_samples*100))*100.0,
-					&process_info[i].name[1],
+					process_info[i].name,
 					mypid == process_info[i].pid ? "(Monitoring overhead)" : "");
 			}
 		}
