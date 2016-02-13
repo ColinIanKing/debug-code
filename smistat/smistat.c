@@ -88,7 +88,7 @@ int main(void)
 {
 	int row = 2;
 
-	if ((getuid() !=0 ) || (geteuid() != 0)) {
+	if ((getuid() != 0) || (geteuid() != 0)) {
 		fprintf(stderr, "Need to run as root.\n");
 		exit(EXIT_FAILURE);
 	}
