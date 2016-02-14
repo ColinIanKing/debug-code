@@ -149,31 +149,6 @@ void calc_mean_and_stddev(double *values, int len, double *mean, double *stddev)
 	*stddev = sqrt(total / (double)len);
 }
 
-u64 tsc_ticks_per_second(void)
-{
-
-#define TICKS_SAMPLES	10
-	u64 t1,t2;
-	double values[TICKS_SAMPLES];
-	double tsc_mean, tsc_stddev;
-
-	int i;
-
-	printf("Calculating TSC ticks per second..\n");
-
-	for (i=0;i<TICKS_SAMPLES;i++) {
-		t1 = rdtsc();
-		sleep(1);
-		t2 = rdtsc();
-		values[i] = (double)t2-t1;
-	}
-	calc_mean_and_stddev(values, TICKS_SAMPLES, &tsc_mean, &tsc_stddev);
-
-	printf("Got %lld TSC ticks per second.\n", (u64)tsc_mean);
-	
-	return (u64)tsc_mean;
-}
-
 typedef struct {
 	int user;
 	int nice;
@@ -305,7 +280,6 @@ void test_cpu_usage(void)
 #define CPU_SAMPLES	60
 	int i;
 	u64 t1,t2;
-	//u64 ticks_per_second = tsc_ticks_per_second();
 	double values[CPU_SAMPLES];
 	double mean, stddev;
 
