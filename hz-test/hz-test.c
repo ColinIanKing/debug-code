@@ -22,6 +22,8 @@
 #include <time.h>
 #include <math.h>
 #include <ctype.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include <limits.h>
 #include <string.h>
@@ -33,17 +35,32 @@
 #include <signal.h>
 #include <fcntl.h>
 
-#define MAX_TASKS	64
+#define MAX_TASKS		(64)
+#define CPU_SAMPLES		(60)
+#define CPU_LOAD_SAMPLES	(60)
+#define SAMPLES			(25)
+
+typedef struct {
+	int user;
+	int nice;
+	int sys;
+	int idle;
+	int iowait;
+	int irq;
+	int softirq;
+	int ctxt;
+	int irqs;
+} stats;
 
 static pid_t *cpu_pids;
 
 static void cpu_consume_kill(void)
 {
-	int i;
+	size_t i;
 	siginfo_t info;
 
-	for (i=0;i<MAX_TASKS;i++) {
-		if (cpu_pids[i] != 0) {
+	for (i = 0; i < MAX_TASKS; i++) {
+		if (!cpu_pids[i]) {
 			kill(cpu_pids[i], SIGUSR1);
 			waitid(P_PID, cpu_pids[i], &info, WEXITED);
 		}
@@ -66,7 +83,7 @@ static void cpu_consume_cycles(void)
 	signal(SIGUSR1, cpu_consume_sighandler);
 
 	float dummy = 0.000001;
-	unsigned long long i = 0;
+	uint64_t i = 0;
 
 	while (dummy > 0.0) {
 		dummy += 0.0000037;
@@ -83,14 +100,14 @@ void cpu_consume_complete(void)
 
 int cpu_consume_start(void)
 {
-	int i;
+	size_t i;
 
 	if ((cpu_pids = (pid_t*)calloc(MAX_TASKS, sizeof(pid_t))) == NULL)
 		return -1;
 
 	signal(SIGINT, cpu_sigint_handler);
 
-	for (i=0;i<MAX_TASKS;i++) {
+	for (i = 0; i < MAX_TASKS; i++) {
 		pid_t pid;
 
 		pid = fork();
@@ -110,36 +127,37 @@ int cpu_consume_start(void)
 	return 0;
 }
 
-typedef unsigned long long u64;
-typedef unsigned long      u32;
-
-static inline u64 rdtsc(void)
+static inline uint64_t rdtsc(void)
 {
-	if (sizeof(long) == sizeof(u64)) {
-		u32 lo, hi;
+	if (sizeof(long) == sizeof(uint64_t)) {
+		uint32_t lo, hi;
         	asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
-		return ((u64)(hi) << 32) | lo;
+		return ((uint64_t)(hi) << 32) | lo;
 	}
 	else {
-		u64 tsc;
+		uint64_t tsc;
         	asm volatile("rdtsc" : "=A" (tsc));
 		return tsc;
 	}
 }
 
 
-void calc_mean_and_stddev(double *values, int len, double *mean, double *stddev)
+void calc_mean_and_stddev(
+	double *values,
+	const size_t len,
+	double *mean,
+	double *stddev)
 {
-	int i;
+	size_t i;
 	double total = 0.0;
 
-	for (i=0;i<len;i++) {
+	for (i = 0; i < len; i++) {
 		total += values[i];
 	}
 	*mean = (total / (double)len);
 
 	total = 0.0;
-	for (i=0;i<len;i++) {
+	for (i = 0; i < len; i++) {
 		double d;
 	
 		d = values[i] - *mean;
@@ -148,18 +166,6 @@ void calc_mean_and_stddev(double *values, int len, double *mean, double *stddev)
 	}
 	*stddev = sqrt(total / (double)len);
 }
-
-typedef struct {
-	int user;
-	int nice;
-	int sys;
-	int idle;
-	int iowait;
-	int irq;
-	int softirq;
-	int ctxt;
-	int irqs;
-} stats;
 
 int read_sys_stats(stats *info)
 {
@@ -207,9 +213,8 @@ int read_sys_stats(stats *info)
 
 void test_cpu_loads(void)
 {
-#define CPU_LOAD_SAMPLES	60
-	int i;
-	stats s1,s2;
+	size_t i;
+	stats s1, s2;
 
 	double values[9][CPU_LOAD_SAMPLES];
 
@@ -228,7 +233,7 @@ void test_cpu_loads(void)
 	read_sys_stats(&s1);
 	sleep(1);
 
-	for (i=0;i<CPU_LOAD_SAMPLES;i++) {
+	for (i = 0; i < CPU_LOAD_SAMPLES; i++) {
 		read_sys_stats(&s2);
 		double total;
 
@@ -268,7 +273,7 @@ void test_cpu_loads(void)
 		sleep(1);
 	}
 
-	for (i=0;i<9;i++) {
+	for (i = 0; i < 9; i++) {
 		double mean, stddev;
 		calc_mean_and_stddev(values[i], CPU_LOAD_SAMPLES, &mean, &stddev);
 		printf("%20.20s: Mean: %8.2f%s (StdDev %f)\n", tags[i], mean, i < 7 ? "%" : " ", stddev);
@@ -277,16 +282,15 @@ void test_cpu_loads(void)
 
 void test_cpu_usage(void)
 {
-#define CPU_SAMPLES	60
-	int i;
-	u64 t1,t2;
+	size_t i;
+	uint64_t t1, t2;
 	double values[CPU_SAMPLES];
 	double mean, stddev;
 
 	printf("Calculating loops per 1,000,000,000 TSC ticks\n");
 
-	for (i=0;i<CPU_SAMPLES;i++) {
-		register u64 count = 0;
+	for (i = 0; i < CPU_SAMPLES; i++) {
+		register uint64_t count = 0;
 
 		t1 = rdtsc();
 		t2 = t1 + 1000000000ULL;
@@ -304,13 +308,12 @@ void test_cpu_usage(void)
 
 void test_clock_jitter(void)
 {
-#define SAMPLES	25
-	long long int us;
+	int64_t us;
 
 	printf("Delay (us)           Mean            StdDev                Mean           StdDev         Deviation\n");
 	printf("                   TSC ticks       TSC ticks            Clock Time      Clock Time       from Clock\n");
 
-	for (us=100;us<=10000000;us *= 10) {
+	for (us = 100; us <= 10000000; us *= 10) {
 		int j;
 		struct timespec req;
 		double tsc_timings[SAMPLES];	
@@ -318,9 +321,9 @@ void test_clock_jitter(void)
 		double tsc_mean, tv_mean;
 		double tsc_stddev, tv_stddev;
 		double accuracy;
-		u64 t1,t2;
+		uint64_t t1, t2;
 
-		for (j=0;j<SAMPLES;j++) {
+		for (j = 0; j < SAMPLES; j++) {
 			req.tv_sec = us / 1000000;
 			req.tv_nsec = (us * 1000) % 1000000000;
 			struct timeval tv1,tv2;
@@ -342,7 +345,7 @@ void test_clock_jitter(void)
 	
 		accuracy = fabs((double)(us) - tv_mean) / ((double)(us)) * 100.0;
 
-		printf("%10lld\t%14.3f\t%14.3f\t\t%12.3f\t%12.3f\t%8.3f%%\n",
+		printf("%10" PRId64 "\t%14.3f\t%14.3f\t\t%12.3f\t%12.3f\t%8.3f%%\n",
 			us, tsc_mean, tsc_stddev, tv_mean, tv_stddev, accuracy);
 	}
 		
