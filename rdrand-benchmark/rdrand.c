@@ -150,9 +150,9 @@ void *test64(void *private)
 	return NULL;
 }
 
-void test(uint16_t threads)
+void test(uint32_t threads)
 {
-	uint16_t i;
+	uint32_t i;
 	uint64_t usec = 0;
 	uint64_t iter = 0;
 	info_t info[threads];
@@ -179,13 +179,14 @@ void test(uint16_t threads)
 	usec /= threads;
 	nsec = 1000.0 * (double)usec / iter;
 		
-	printf("%" PRIu16 "\t%8.3f\t%8.3f\n", threads, nsec, 1000.0 / nsec );
+	printf("%" PRIu16 "\t%8.3f\t%8.3f\t  %12.7f\n", threads, nsec, 1000.0 / nsec, 64.0 / nsec);
 }
 
 int main(int argc, char **argv)
 {	
 	uint32_t eax, ebx, ecx, edx = 0;
-	uint16_t i;
+	uint32_t i;
+	uint32_t cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
 	/* Intel CPU? */
 	cpuid(0, eax, ebx, ecx, edx);
@@ -202,9 +203,10 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Threads\trdrand\t\tmillion rdrands\n");
-	printf("\tduration (ns)\tper second\n");
-	for (i = 1; i < 64; i++) 
+	printf("Exericising 64 bit rdrands:\n");
+	printf("Threads\trdrand\t\tmillion rdrands\t  billion bits\n");
+	printf("\tduration (ns)\tper second\t  per second\n");
+	for (i = 1; i <= cpus; i++) 
 		test(i);
 
 	exit(EXIT_SUCCESS);
