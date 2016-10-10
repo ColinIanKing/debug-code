@@ -91,12 +91,14 @@ static int loop_create(const off_t len)
 	}
 
 	for (i = 0; i < n; i++) {
-		snprintf(filename, sizeof(filename), "backing-file-%d-%d", pid, devnr[n]);
+		snprintf(filename, sizeof(filename), "backing-file-%d-%d", pid, devnr[i]);
 		bfd = open(filename, O_RDWR | O_CLOEXEC, S_IRUSR | S_IWUSR);
 		if (bfd < 0) {
 			fprintf(stderr, "can't re-open backing store file '%s': %d (%s)\n",
 				filename, errno, strerror(errno));
 		} else {
+			(void)unlink(filename);
+
 			snprintf(filename, sizeof(filename), "/dev/loop%d", devnr[i]);
 			lfd = open(filename, O_RDWR);
 			if (lfd >= 0) {
