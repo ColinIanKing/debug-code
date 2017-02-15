@@ -39,15 +39,7 @@
 #define CPU_SAMPLES		(60)
 #define TSC_SAMPLES		(25)
 
-#if !(defined(__x86_64__) || defined(__x86_64) || defined(__i386__) || defined(__i386))
-#error only for Intel processors!
-#endif
-
-#if defined(__x86_64__) || defined(__x86_64)
-#define WIDTH   64
-#else
-#define WIDTH   32
-#endif
+#define WIDTH   (8 * sizeof(int))
 
 typedef struct {
 	int user;
@@ -156,22 +148,42 @@ static int cpu_consume_start(void)
 	return 0;
 }
 
-static inline uint64_t rdtsc(void)
+
+
+#if defined(__i386__) || defined(__i386)
+static inline uint64_t rd_clock(void)
 {
-#if WIDTH == 32
 	uint32_t lo, hi;
 
         asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
 	return ((uint64_t)(hi) << 32) | lo;
-#elif WIDTH == 64
+}
+#endif
+
+#if defined(__x86_64__) || defined(__x86_64) 
+static inline uint64_t rd_clock(void)
+{
 	uint64_t tsc;
 
         asm volatile("rdtsc" : "=A" (tsc));
 	return tsc;
-#else
-	#error unknown CPU integer width
-#endif
 }
+#endif
+
+#if defined __aarch64__
+static inline uint64_t rd_clock(void)
+{
+        uint64_t cntv_vct;
+
+        __asm__ __volatile(
+                "isb;\n"
+                "mrs %0, cntvct_el0;\n"
+                "isb;\n" : "=r" (cntv_vct));
+
+        return cntv_vct;
+}
+#endif
+
 
 static void calc_mean_and_stddev(
 	double *values,
@@ -340,10 +352,10 @@ static void test_cpu_usage(void)
 		register uint64_t count = 0;
 		uint64_t t1, t2;
 
-		t1 = rdtsc();
+		t1 = rd_clock();
 		t2 = t1 + 1000000000ULL;
 
-		while (rdtsc() < t2)
+		while (rd_clock() < t2)
 			count++;
 
 		values[i] = (double)count;
@@ -378,9 +390,9 @@ static void test_clock_jitter(void)
 			uint64_t t1, t2;
 
 			gettimeofday(&tv1, NULL);
-			t1 = rdtsc();
+			t1 = rd_clock();
 			nanosleep(&req, NULL);
-			t2 = rdtsc();
+			t2 = rd_clock();
 			gettimeofday(&tv2, NULL);
 
 			tsc_timings[j] = (double)(t2 - t1);
