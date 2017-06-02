@@ -74,6 +74,8 @@ int main(int argc, char **argv)
 	if (sigaction(SIGCHLD, &new_action, NULL) < 0)
 		return EXIT_FAILURE;
 
+	printf("eatpages will now mark pages as poisoned and consume memory..\n");
+
 	set_oom_adjustment();
 	(void)sync();
 
