@@ -63,6 +63,11 @@ int main(int argc, char **argv)
 	size_t sz = page_size * 4;
 	page_size = (page_size <= 0) ? 4096: page_size;
 
+	if (geteuid()) {
+		fprintf(stderr, "eatpages must be run with root privileges\n");
+		exit(EXIT_FAILURE);
+	}
+
 	if (sigsetjmp(jmp_env, 1))
 		return EXIT_FAILURE;
 
@@ -83,6 +88,8 @@ int main(int argc, char **argv)
 		_exit(0);
 	if (fork())
 		_exit(0);
+
+	printf("eatpages running in background (PID %d)\n", getpid());
 	for (;;) {
 		void *buf = mmap(NULL, sz, PROT_READ,
 				MAP_ANONYMOUS | MAP_SHARED, -1, 0);
