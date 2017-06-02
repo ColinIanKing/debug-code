@@ -90,6 +90,12 @@ int main(int argc, char **argv)
 		_exit(0);
 
 	printf("eatpages running in background (PID %d)\n", getpid());
+
+	(void)setsid();
+	(void)close(0);
+	(void)close(1);
+	(void)close(2);
+	
 	for (;;) {
 		void *buf = mmap(NULL, sz, PROT_READ,
 				MAP_ANONYMOUS | MAP_SHARED, -1, 0);
